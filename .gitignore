@@ -1,5 +1,8 @@
 # Data
-data
+data/*.RData
+
+# Explore
+explore
 
 # OS files
 .DS_Store
