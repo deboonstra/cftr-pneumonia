@@ -1,5 +1,8 @@
 # Data
 data/*.RData
+data/*.rda
+data/*.rds
+data-raw
 
 # Explore
 explore
