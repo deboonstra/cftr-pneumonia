@@ -7,3 +7,6 @@ explore
 
 # OS files
 .DS_Store
+
+# Outputs
+outputs/**/*.html
