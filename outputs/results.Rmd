@@ -1,0 +1,247 @@
+---
+title: "Analysis for CFTR-Pneumonia"
+author: "D. Erik Boonstra and Joe E. Cavanaugh"
+output: html_document
+---
+
+# Purpose
+In this project, we are trying to determine if carriers have a higher global trend and larger seasonal trend peaks than controls.
+
+# Data
+The data ranges from 2008 to 2019 because:
+
+- excluding 2020 and above due to the possibility of classifying the flu as COVID, and
+- starting in 2008 because 2008 is minimum year that influenza has almost a complete set of data.
+
+Then, removed any diseases that did not have less than or equal to 25% of monthly incidence greater than zero. This rate was choosen because it will not let an entire calendar season (fall, winter, spring, or summer) go without a single incidence. Finally, if a disease series did not have all twelve years (2008 through 2019) of data for both carrier statuses, they were removed from consideration.
+
+# Results
+```{r, echo = FALSE}
+carrier_extract <- readRDS("./outputs/carrier/extract.rds")
+control_extract <- readRDS("./outputs/control/extract.rds")
+```
+
+## Disease series {.tabset .tabset-fade}
+```{r, include = FALSE}
+col <- boonstra::pal(2)
+fill <- boonstra::pal(2, alpha = 0.5)
+alpha <- 0.05
+crit_val <- stats::qnorm(p = 1 - (alpha / 2))
+plot_names <- c(
+  "Astma", "Bronchiectasis", "Acute bronchitis", "Chronic bronchitis",
+  "Cough", "Influenza", "Gerd", "Nasal polyps",
+  "Other lower respiratory infections", "Pneumonia", "Respiratory failure",
+  "Acute sinusitis", "Chronic sinusitis",
+  "Unspecified upper respiratory infections"
+)
+```
+
+### Observed
+```{r, echo = FALSE, out.width = "100%"}
+carrier_obs <- lapply(
+  X = carrier_extract,
+  FUN = function(x) {
+    x$obs
+  }
+)
+control_obs <- lapply(
+  X = control_extract,
+  FUN = function(x) {
+    x$obs
+  }
+)
+for (j in seq_along(carrier_extract)) {
+  obs <- data.frame(
+    obs_carrier = carrier_obs[[j]],
+    obs_control = control_obs[[j]]
+  )
+  graphics::par(oma = c(0, 0, 0, 7))
+  astsa::tsplot(
+    x = obs, main = plot_names[j], col = col,
+    ylab = "Incidence per 10,000",
+    xlab = "Time",
+    spaghetti = TRUE
+  )
+  boonstra::legend_right(
+    legend = c("Carriers", "Controls"), col = col, lty = 1
+  )
+}
+```
+
+### Trend
+```{r, echo = FALSE, out.width = "100%"}
+carrier_tsm <- lapply(
+  X = carrier_extract,
+  FUN = function(x) {
+    x$tsm
+  }
+)
+control_tsm <- lapply(
+  X = control_extract,
+  FUN = function(x) {
+    x$tsm
+  }
+)
+carrier_tsm_se <- lapply(
+  X = carrier_extract,
+  FUN = function(x) {
+    x$tsm_se
+  }
+)
+control_tsm_se <- lapply(
+  X = control_extract,
+  FUN = function(x) {
+    x$tsm_se
+  }
+)
+for (j in seq_along(carrier_extract)) {
+  xx_carrier <- c(
+    stats::time(carrier_tsm[[j]]),
+    rev(stats::time(carrier_tsm[[j]]))
+  )
+  yy_carrier <- c(
+    carrier_tsm[[j]] - (crit_val * carrier_tsm_se[[j]]),
+    rev(carrier_tsm[[j]] + (crit_val * carrier_tsm_se[[j]]))
+  )
+  xx_control <- c(
+    stats::time(control_tsm[[j]]),
+    rev(stats::time(control_tsm[[j]]))
+  )
+  yy_control <- c(
+    control_tsm[[j]] - (crit_val * control_tsm_se[[j]]),
+    rev(control_tsm[[j]] + (crit_val * control_tsm_se[[j]]))
+  )
+  tsm <- data.frame(
+    tsm_carrier = carrier_tsm[[j]],
+    tsm_control = control_tsm[[j]]
+  )
+  ylim <- floor(
+    1.10 * c(
+      min(c(yy_carrier, yy_control)),
+      max(c(yy_carrier, yy_control))
+    )
+  )
+  graphics::par(oma = c(0, 0, 0, 7))
+  astsa::tsplot(
+    x = tsm, main = plot_names[j], col = col,
+    ylab = "Incidence per 10,000", xlab = "Time",
+    ylim = ylim, spaghetti = TRUE
+  )
+  graphics::polygon(
+    x = xx_carrier, y = yy_carrier,
+    col = fill[1], border = FALSE
+  )
+  graphics::polygon(
+    x = xx_control, y = yy_control,
+    col = fill[2], border = FALSE
+  )
+  boonstra::legend_right(
+    legend = c("Carriers", "Controls"), col = col, lty = 1
+  )
+}
+```
+
+### Seasonal
+```{r, echo = FALSE, out.width = "100%"}
+carrier_ssm <- lapply(
+  X = carrier_extract,
+  FUN = function(x) {
+    x$ssm
+  }
+)
+control_ssm <- lapply(
+  X = control_extract,
+  FUN = function(x) {
+    x$ssm
+  }
+)
+carrier_ssm_se <- lapply(
+  X = carrier_extract,
+  FUN = function(x) {
+    x$ssm_se
+  }
+)
+control_ssm_se <- lapply(
+  X = control_extract,
+  FUN = function(x) {
+    x$ssm_se
+  }
+)
+for (j in seq_along(carrier_extract)) {
+  xx_carrier <- c(
+    stats::time(carrier_ssm[[j]]),
+    rev(stats::time(carrier_ssm[[j]]))
+  )
+  yy_carrier <- c(
+    carrier_ssm[[j]] - (crit_val * carrier_ssm_se[[j]]),
+    rev(carrier_ssm[[j]] + (crit_val * carrier_ssm_se[[j]]))
+  )
+  xx_control <- c(
+    stats::time(control_ssm[[j]]),
+    rev(stats::time(control_ssm[[j]]))
+  )
+  yy_control <- c(
+    control_ssm[[j]] - (crit_val * control_ssm_se[[j]]),
+    rev(control_ssm[[j]] + (crit_val * control_ssm_se[[j]]))
+  )
+  ssm <- data.frame(
+    ssm_carrier = carrier_ssm[[j]],
+    ssm_control = control_ssm[[j]]
+  )
+  ylim <- floor(
+    1.10 * c(
+      min(c(yy_carrier, yy_control)),
+      max(c(yy_carrier, yy_control))
+    )
+  )
+  graphics::par(oma = c(0, 0, 0, 7))
+  astsa::tsplot(
+    x = ssm, main = plot_names[j], col = col,
+    ylab = "Incidence per 10,000", xlab = "Time",
+    ylim = ylim, spaghetti = TRUE
+  )
+  graphics::polygon(
+    x = xx_carrier, y = yy_carrier,
+    col = fill[1], border = FALSE
+  )
+  graphics::polygon(
+    x = xx_control, y = yy_control,
+    col = fill[2], border = FALSE
+  )
+  boonstra::legend_right(
+    legend = c("Carriers", "Controls"), col = col, lty = 1
+  )
+}
+```
+
+### Local component
+```{r, echo = FALSE, out.width = "100%"}
+carrier_asm <- lapply(
+  X = carrier_extract,
+  FUN = function(x) {
+    x$asm
+  }
+)
+control_asm <- lapply(
+  X = control_extract,
+  FUN = function(x) {
+    x$asm
+  }
+)
+for (j in seq_along(carrier_extract)) {
+  asm <- data.frame(
+    obs_carrier = carrier_asm[[j]],
+    obs_control = control_asm[[j]]
+  )
+  graphics::par(oma = c(0, 0, 0, 7))
+  astsa::tsplot(
+    x = asm, main = plot_names[j], col = col,
+    ylab = "Incidence per 10,000",
+    xlab = "Time",
+    spaghetti = TRUE
+  )
+  boonstra::legend_right(
+    legend = c("Carriers", "Controls"), col = col, lty = 1
+  )
+}
+```
